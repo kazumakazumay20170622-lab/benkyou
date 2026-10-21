@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新・くりかえし漢字ドリル (小3・2学期・全40字)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        kumaBrown: '#8B5A2B',
+                        kumaLightBrown: '#A06D3B',
+                        kumaYellow: '#FFD100',
+                        kumaCream: '#FFFDF0',
+                        kumaPink: '#FF9EAA',
+                        kumaLightPink: '#FFE5EC',
+                        kumaGreen: '#7BC67E',
+                        kumaBlue: '#6BB2E2'
+                    },
+                    fontFamily: {
+                        rounded: ['"M PLUS Rounded 1c"', '"Zen Maru Gothic"', 'sans-serif'],
+                        kanji: ['"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background-color: #FFFDF0;
+            background-image: radial-gradient(#FFD100 2px, transparent 2px);
+            background-size: 28px 28px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFE5EC;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FF9EAA;
+            border-radius: 10px;
+        }
+
+        /* Stamp animation */
+        .stamp-appear {
+            animation: stampBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes stampBounce {
+            0% { transform: scale(3) rotate(-20deg); opacity: 0; }
+            50% { transform: scale(0.9) rotate(-5deg); opacity: 1; }
+            75% { transform: scale(1.1) rotate(-8deg); }
+            100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+        }
+
+        .oshii-appear {
+            animation: oshiiBounce 0.4s ease-out forwards;
+        }
+        @keyframes oshiiBounce {
+            0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+            70% { transform: scale(1.05) translateY(-5px); opacity: 1; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* Grid guidelines on canvas */
+        .kanji-grid-bg {
+            background-image: 
+                linear-gradient(to right, rgba(255, 158, 170, 0.4) 1.5px, transparent 1.5px),
+                linear-gradient(to bottom, rgba(255, 158, 170, 0.4) 1.5px, transparent 1.5px);
+            background-size: 50% 50%;
+        }
+
+        ruby rt {
+            font-size: 0.6em;
+            color: #8B5A2B;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-amber-950 flex flex-col justify-between">
+
+    <!-- Sound Audio Engine (Web Audio API) -->
+    <script>
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playCorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.type = 'sine';
+                osc2.type = 'triangle';
+
+                osc1.frequency.setValueAtTime(523.25, now); // C5
+                osc1.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                osc1.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                osc1.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc1.start(now);
+                osc2.start(now + 0.08);
+                osc1.stop(now + 0.5);
+                osc2.stop(now + 0.5);
+            }
+
+            playOshii() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now); // A4
+                osc.frequency.setValueAtTime(349.23, now + 0.12); // F4
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+
+            playIncorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.setValueAtTime(220, now + 0.12);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+
+            playClick() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.04);
+            }
+
+            playFanfare() {
+                this.init();
+                const notes = [523.25, 659.25, 783.99, 1046.50, 880, 1046.50];
+                const times = [0, 0.1, 0.2, 0.3, 0.45, 0.6];
+
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const now = this.ctx.currentTime + times[idx];
+
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (idx === notes.length - 1 ? 0.7 : 0.2));
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + (idx === notes.length - 1 ? 0.7 : 0.2));
+                });
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'ja-JP';
+                msg.rate = 0.85;
+                msg.pitch = 1.1;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+    </script>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="bg-gradient-to-r from-amber-800 via-amber-700 to-amber-900 border-b-8 border-yellow-400 shadow-lg p-3 md:p-4 sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+            
+            <!-- Book Cover Badge & Title -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchView('zukan')">
+                <div class="bg-yellow-400 p-2.5 rounded-2xl shadow-md border-2 border-white flex items-center justify-center text-3xl">
+                    🐻
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded-md shadow border border-white">青葉出版</span>
+                        <span class="bg-yellow-400 text-amber-950 font-black text-xs px-2 py-0.5 rounded-md shadow border border-white">光村図書版（光）</span>
+                    </div>
+                    <h1 class="text-xl md:text-2xl font-black text-white drop-shadow-md tracking-wider flex items-center gap-2 mt-0.5">
+                        <span>新 くりかえし漢字ドリル</span>
+                        <span class="text-yellow-300 text-sm font-bold">3年2学期（全40字）</span>
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Global User Stats Bar -->
+            <div class="flex items-center gap-3 bg-amber-50 px-4 py-2 rounded-2xl border-2 border-yellow-400 shadow-inner w-full md:w-auto justify-around">
+                <!-- Stars -->
+                <div class="flex items-center gap-1.5" title="あつめたスター">
+                    <i class="fa-solid fa-star text-yellow-500 text-2xl animate-pulse"></i>
+                    <span id="user-stars" class="text-xl font-black text-amber-900">0</span>
+                </div>
+
+                <div class="h-6 w-0.5 bg-amber-200"></div>
+
+                <!-- Level Title -->
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-crown text-amber-600 text-lg"></i>
+                    <span id="user-level" class="text-xs md:text-sm font-bold text-amber-900">かんじ たまご</span>
+                </div>
+
+                <div class="h-6 w-0.5 bg-amber-200"></div>
+
+                <!-- Progress Bar -->
+                <div class="flex flex-col items-end">
+                    <div class="text-[10px] font-bold text-amber-800"><ruby>進捗<rt>しんちょく</rt></ruby></div>
+                    <div class="w-20 md:w-24 bg-amber-200 h-3 rounded-full overflow-hidden border border-amber-300">
+                        <div id="overall-progress-bar" class="bg-gradient-to-r from-emerald-400 to-green-500 h-full w-0% transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-6xl mx-auto p-3 md:p-6 flex-grow w-full">
+
+        <!-- NAV TABS & PAGE FILTER -->
+        <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 mb-6">
+            
+            <!-- View Tabs (4 Modes) -->
+            <div class="grid grid-cols-4 gap-1.5 md:gap-2 bg-amber-200/70 p-1.5 rounded-2xl border-2 border-amber-300 shadow-inner">
+                <button id="tab-canvas" onclick="switchView('canvas')" class="py-2.5 px-2 md:px-4 rounded-xl font-black text-xs md:text-sm transition flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 bg-white text-amber-900 shadow-md border-b-4 border-yellow-400">
+                    <i class="fa-solid fa-pen-nib text-amber-600"></i>
+                    <span>なぞり</span>
+                </button>
+                <button id="tab-zukan" onclick="switchView('zukan')" class="py-2.5 px-2 md:px-4 rounded-xl font-black text-xs md:text-sm transition flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-amber-900 hover:bg-white/60">
+                    <i class="fa-solid fa-book-open text-amber-600"></i>
+                    <span>図鑑</span>
+                </button>
+                <button id="tab-quiz" onclick="switchView('quiz')" class="py-2.5 px-2 md:px-4 rounded-xl font-black text-xs md:text-sm transition flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-amber-900 hover:bg-white/60">
+                    <i class="fa-solid fa-gamepad text-amber-600"></i>
+                    <span>クイズ</span>
+                </button>
+                <button id="tab-stamp" onclick="switchView('stamp')" class="py-2.5 px-2 md:px-4 rounded-xl font-black text-xs md:text-sm transition flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-amber-900 hover:bg-white/60">
+                    <i class="fa-solid fa-award text-amber-600"></i>
+                    <span>スタンプ</span>
+                </button>
+            </div>
+
+            <!-- Kanji Range Info -->
+            <div class="flex items-center gap-2 bg-white p-2 rounded-2xl border-2 border-amber-300 shadow-sm">
+                <span class="text-xs font-black text-amber-900 bg-yellow-300 px-3 py-1.5 rounded-xl flex items-center gap-1">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>全40漢字コース（「両」〜「役」）</span>
+                </span>
+            </div>
+
+        </div>
+
+        <!-- MODE 1: WRITING PRACTICE CANVAS (なぞりがき) -->
+        <section id="view-canvas" class="space-y-4">
+            <div class="bg-white border-4 border-amber-300 rounded-3xl p-4 md:p-6 shadow-md max-w-4xl mx-auto">
+                
+                <!-- Kanji Selection Top Header -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b-2 border-dashed border-amber-200">
+                    <div class="flex items-center gap-3">
+                        <button onclick="navigateCanvasKanji(-1)" class="w-11 h-11 rounded-2xl bg-amber-100 hover:bg-yellow-300 text-amber-900 flex items-center justify-center font-black text-xl shadow-sm border border-amber-300 active:scale-95 transition">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <div class="text-center">
+                            <span id="canvas-page-tag" class="text-xs font-black bg-red-500 text-white px-3 py-0.5 rounded-full shadow-sm">1 / 40</span>
+                            <div id="canvas-kanji-title" class="text-5xl font-black text-amber-950 font-serif my-1">両</div>
+                        </div>
+                        <button onclick="navigateCanvasKanji(1)" class="w-11 h-11 rounded-2xl bg-amber-100 hover:bg-yellow-300 text-amber-900 flex items-center justify-center font-black text-xl shadow-sm border border-amber-300 active:scale-95 transition">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Readings & Speech -->
+                    <div class="flex items-center gap-3 bg-amber-50 px-4 py-2.5 rounded-2xl border-2 border-amber-200">
+                        <div class="text-left">
+                            <div class="text-xs text-amber-800 font-bold">音読み: <span id="canvas-onyomi" class="text-sm font-black text-amber-950">リョウ</span></div>
+                            <div class="text-xs text-amber-800 font-bold">訓読み: <span id="canvas-kunyomi" class="text-sm font-black text-amber-950">-</span></div>
+                        </div>
+                        <button id="canvas-audio-btn" onclick="speakCurrentCanvasKanji()" class="w-10 h-10 bg-yellow-400 hover:bg-yellow-500 text-amber-950 rounded-2xl flex items-center justify-center shadow-md active:scale-95 transition border border-white">
+                            <i class="fa-solid fa-volume-high text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas Work Area -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 my-4 items-center">
+                    
+                    <!-- Left Column: Info Hints -->
+                    <div class="md:col-span-4 space-y-3">
+                        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3">
+                            <h3 class="text-xs font-bold text-amber-800 mb-0.5"><i class="fa-solid fa-pen mr-1"></i>画数（かくすう）と部首</h3>
+                            <div class="flex items-center justify-between mt-1">
+                                <span id="canvas-stroke-count" class="text-lg font-black text-amber-950">6 画</span>
+                                <span id="canvas-radical" class="text-xs font-black bg-amber-200 text-amber-900 px-2.5 py-1 rounded-lg">部首: 一 (いち)</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-pink-50 border-2 border-pink-200 rounded-2xl p-3">
+                            <h3 class="text-xs font-bold text-pink-800 mb-0.5"><i class="fa-solid fa-lightbulb mr-1"></i>つかいかた・例文</h3>
+                            <div id="canvas-example" class="text-xs font-black text-pink-950 mt-1">両手（りょうて）をあげる</div>
+                        </div>
+
+                        <!-- Color Selector -->
+                        <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3">
+                            <h3 class="text-xs font-bold text-slate-600 mb-2"><i class="fa-solid fa-palette mr-1"></i>ペンの色</h3>
+                            <div class="flex items-center justify-around gap-2">
+                                <button onclick="setPenColor('#1e293b')" class="w-8 h-8 rounded-full bg-slate-800 border-2 border-white shadow ring-2 ring-slate-800/20 active:scale-95"></button>
+                                <button onclick="setPenColor('#dc2626')" class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow ring-2 ring-red-600/20 active:scale-95"></button>
+                                <button onclick="setPenColor('#2563eb')" class="w-8 h-8 rounded-full bg-blue-600 border-2 border-white shadow ring-2 ring-blue-600/20 active:scale-95"></button>
+                                <button onclick="setPenColor('#059669')" class="w-8 h-8 rounded-full bg-emerald-600 border-2 border-white shadow ring-2 ring-emerald-600/20 active:scale-95"></button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-amber-100/60 p-2.5 rounded-xl border border-amber-200">
+                            <span class="text-xs font-bold text-amber-900">なぞりガイド文字:</span>
+                            <button id="toggle-guide-btn" onclick="toggleCanvasGuide()" class="bg-emerald-500 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow transition">
+                                ON
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Center Column: Interactive Canvas -->
+                    <div class="md:col-span-8 flex flex-col items-center justify-center">
+                        <div id="canvas-container-box" class="relative w-64 h-64 md:w-80 md:h-80 border-4 border-amber-400 rounded-3xl kanji-grid-bg bg-white shadow-inner flex items-center justify-center overflow-hidden">
+                            
+                            <!-- Safe Bounds Visual Frame -->
+                            <div class="absolute inset-4 border-2 border-dashed border-red-300 pointer-events-none rounded-2xl opacity-60"></div>
+
+                            <!-- Trace Overlay Template -->
+                            <div id="canvas-trace-template" class="absolute inset-0 flex items-center justify-center text-[150px] md:text-[190px] font-black text-amber-300/40 select-none pointer-events-none font-serif">
+                                両
+                            </div>
+
+                            <!-- Drawing Canvas -->
+                            <canvas id="writing-canvas" class="absolute inset-0 w-full h-full cursor-crosshair touch-none z-10"></canvas>
+                        </div>
+
+                        <!-- Canvas Controls -->
+                        <div class="flex items-center gap-3 mt-4 flex-wrap justify-center">
+                            <button onclick="clearCanvas()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-black rounded-2xl shadow-sm active:scale-95 transition text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>やりなおす</span>
+                            </button>
+
+                            <button onclick="checkCanvasWriting()" class="px-7 py-3 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-amber-950 font-black rounded-2xl shadow-md active:scale-95 transition text-base flex items-center gap-2 border border-white">
+                                <i class="fa-solid fa-circle-check text-xl"></i>
+                                <span>できた！(判定)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- MODE 2: KANJI ZUKAN (図鑑) -->
+        <section id="view-zukan" class="hidden space-y-6">
+            <div class="bg-amber-100/70 border-2 border-amber-300 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="text-4xl">🐻</div>
+                    <div>
+                        <h2 class="font-black text-amber-900 text-base md:text-lg">光村図書版・全40漢字カード！</h2>
+                        <p class="text-xs text-amber-800 font-bold">カードをタップして詳細を見たり、声を聞いたりできるよ。</p>
+                    </div>
+                </div>
+                <div class="relative w-full md:w-64">
+                    <input type="text" id="zukan-search" oninput="renderZukan()" placeholder="漢字や読みで検索..." class="w-full pl-9 pr-4 py-2 rounded-xl border-2 border-amber-300 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-amber-400 text-sm"></i>
+                </div>
+            </div>
+
+            <!-- Kanji Cards Grid -->
+            <div id="zukan-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- MODE 3: INTERACTIVE QUIZ (漢字クイズ) -->
+        <section id="view-quiz" class="hidden space-y-4">
+            <div class="bg-white border-4 border-yellow-400 rounded-3xl p-4 md:p-8 shadow-md max-w-2xl mx-auto relative overflow-hidden">
+                
+                <!-- Quiz Header Progress Bar -->
+                <div class="flex items-center justify-between gap-4 mb-6">
+                    <div class="text-xs font-black text-amber-900 bg-yellow-300 px-3 py-1 rounded-full border border-yellow-400">
+                        問題 <span id="quiz-current-num">1</span> / <span id="quiz-total-num">5</span>
+                    </div>
+                    <div class="flex-grow bg-amber-100 h-3.5 rounded-full overflow-hidden border border-amber-200">
+                        <div id="quiz-progress-inner" class="bg-yellow-500 h-full w-0% transition-all duration-300"></div>
+                    </div>
+                    <div class="text-sm font-black text-amber-900 flex items-center gap-1 bg-amber-100 px-2.5 py-1 rounded-xl">
+                        <i class="fa-solid fa-star text-yellow-500"></i>
+                        <span id="quiz-score">0</span>
+                    </div>
+                </div>
+
+                <!-- Question Box -->
+                <div id="quiz-box" class="space-y-6">
+                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 text-center shadow-inner">
+                        <span id="quiz-type-badge" class="inline-block bg-amber-800 text-white text-xs font-black px-3 py-1 rounded-full mb-2">読みかたクイズ</span>
+                        <h3 id="quiz-question-text" class="text-2xl md:text-3xl font-black text-amber-950 leading-relaxed">
+                            「両」の読みかたは？
+                        </h3>
+                    </div>
+
+                    <div id="quiz-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Options Dynamically Populated -->
+                    </div>
+                </div>
+
+                <!-- Quiz Completion Screen -->
+                <div id="quiz-result-box" class="hidden text-center space-y-6 py-6">
+                    <div class="text-6xl animate-bounce">💮</div>
+                    <h2 class="text-3xl font-black text-amber-900">クイズクリア！</h2>
+                    <p class="text-amber-800 font-bold">全40字の漢字マスターに近づいたね！</p>
+                    
+                    <div class="bg-yellow-100 border-2 border-yellow-300 rounded-2xl p-4 inline-block mx-auto shadow-sm">
+                        <div class="text-xs text-amber-800 font-bold">かくとくスター</div>
+                        <div class="text-4xl font-black text-yellow-600 flex items-center justify-center gap-2 mt-1">
+                            <i class="fa-solid fa-star"></i>
+                            <span id="quiz-earned-stars">+50</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button onclick="startQuiz()" class="px-8 py-3.5 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-amber-950 font-black text-lg rounded-2xl shadow-lg active:scale-95 transition border border-white">
+                            もう一度チャレンジ！
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- MODE 4: STAMP & REWARD BOOK (スタンプ帳) -->
+        <section id="view-stamp" class="hidden space-y-6">
+            <div class="bg-white border-4 border-amber-300 rounded-3xl p-6 shadow-md max-w-4xl mx-auto space-y-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-black text-amber-900 flex items-center justify-center gap-2">
+                        <span>🏆</span>
+                        <span>ごほうびスタンプ帳</span>
+                    </h2>
+                    <p class="text-xs text-amber-800 font-bold">漢字のなぞりがきやクイズをクリアして「たいへんよくできました」スタンプを集めよう！</p>
+                </div>
+
+                <!-- Badges & Titles Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-center space-y-1 shadow-sm">
+                        <div class="text-3xl">🐣</div>
+                        <div class="text-xs font-black text-amber-900">かんじ たまご</div>
+                        <div class="text-[10px] font-bold text-amber-700">スター 0個</div>
+                    </div>
+                    <div id="badge-1" class="bg-slate-100 border-2 border-slate-200 rounded-2xl p-4 text-center space-y-1 opacity-50">
+                        <div class="text-3xl">🐥</div>
+                        <div class="text-xs font-black text-slate-700">かんじ 見習い</div>
+                        <div class="text-[10px] font-bold text-slate-500">スター 50個</div>
+                    </div>
+                    <div id="badge-2" class="bg-slate-100 border-2 border-slate-200 rounded-2xl p-4 text-center space-y-1 opacity-50">
+                        <div class="text-3xl">🐻</div>
+                        <div class="text-xs font-black text-slate-700">小3かんじ名人</div>
+                        <div class="text-[10px] font-bold text-slate-500">スター 150個</div>
+                    </div>
+                    <div id="badge-3" class="bg-slate-100 border-2 border-slate-200 rounded-2xl p-4 text-center space-y-1 opacity-50">
+                        <div class="text-3xl">👑</div>
+                        <div class="text-xs font-black text-slate-700">かんじ ハカセ</div>
+                        <div class="text-[10px] font-bold text-slate-500">スター 300個</div>
+                    </div>
+                </div>
+
+                <!-- Stamps Grid -->
+                <div class="bg-yellow-50 border-2 border-dashed border-amber-300 rounded-2xl p-4">
+                    <h3 class="text-sm font-black text-amber-900 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-stamp text-red-500"></i>
+                        <span>クリアした漢字スタンプ（全40字）</span>
+                    </h3>
+                    <div id="stamp-grid" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                        <!-- Dynamically populated stamps -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-amber-950 text-amber-200 py-4 text-center text-xs border-t-4 border-yellow-400 mt-8">
+        <p class="font-bold">新・くりかえし漢字ドリル (小学3年 2学期・全40字「両」〜「役」)</p>
+        <p class="text-amber-400 mt-1">青葉出版 学習指導要領準拠 Webドリル</p>
+    </footer>
+
+    <!-- KANJI MODAL DIALOG (Zukan Detail View) -->
+    <div id="kanji-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative border-4 border-yellow-400 animate-in fade-in zoom-in duration-200">
+            <button onclick="closeModal()" class="absolute top-4 right-4 w-9 h-9 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-full flex items-center justify-center font-bold">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center space-y-4">
+                <span id="modal-page" class="bg-red-500 text-white font-black text-xs px-3 py-1 rounded-full shadow-sm">1 / 40</span>
+                
+                <div class="flex items-center justify-center gap-4">
+                    <!-- Kanji Display -->
+                    <div id="modal-kanji-container" class="relative w-28 h-28 border-4 border-amber-200 rounded-2xl bg-amber-50/50 shadow-inner flex items-center justify-center">
+                        <div id="modal-kanji" class="text-7xl font-black text-amber-950 font-serif">両</div>
+                    </div>
+
+                    <div class="text-left space-y-1">
+                        <div class="text-xs font-bold text-amber-800">画数: <span id="modal-strokes" class="text-amber-950 font-black">6画</span></div>
+                        <div class="text-xs font-bold text-amber-800">部首: <span id="modal-radical" class="text-amber-950 font-black">一 (いち)</span></div>
+                        <div class="text-xs font-bold text-amber-800">音読み: <span id="modal-onyomi" class="text-amber-950 font-black">リョウ</span></div>
+                        <div class="text-xs font-bold text-amber-800">訓読み: <span id="modal-kunyomi" class="text-amber-950 font-black">-</span></div>
+                        
+                        <button id="modal-speak-btn" class="mt-2 text-xs font-black bg-yellow-400 hover:bg-yellow-500 text-amber-950 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm border border-white">
+                            <i class="fa-solid fa-volume-high"></i>
+                            <span>おんせいをきく</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50/80 rounded-2xl p-4 border border-amber-200 text-left">
+                    <h4 class="text-xs font-black text-amber-900 mb-2 border-b border-amber-200 pb-1"><i class="fa-solid fa-book mr-1"></i>つかいかた・れいぶん</h4>
+                    <ul id="modal-examples" class="text-sm font-bold text-amber-950 space-y-1">
+                        <!-- Examples -->
+                    </ul>
+                </div>
+
+                <button id="modal-practice-btn" class="w-full py-3.5 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-amber-950 font-black rounded-2xl shadow-md active:scale-95 transition border border-white text-base">
+                    この漢字をなぞりがき練習する！
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STAMP POPUP OVERLAY FOR CELEBRATION -->
+    <div id="stamp-overlay" class="fixed inset-0 pointer-events-none z-50 flex items-center justify-center hidden">
+        <div class="bg-red-600 text-white border-8 border-yellow-300 font-black text-2xl md:text-4xl px-8 py-6 rounded-full shadow-2xl transform -rotate-6 stamp-appear flex items-center gap-3">
+            <i class="fa-solid fa-certificate text-yellow-300 text-4xl"></i>
+            <span>たいへんよくできました！</span>
+        </div>
+    </div>
+
+    <!-- OSHII (はみだし警告) POPUP OVERLAY -->
+    <div id="oshii-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border-4 border-orange-400 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl oshii-appear space-y-4">
+            <div class="text-5xl animate-bounce">💦</div>
+            <h3 class="text-2xl font-black text-orange-600">惜しい！</h3>
+            <p id="oshii-message-text" class="text-amber-900 font-bold text-sm leading-relaxed">
+                枠（わく）からはみ出しているよ！<br>
+                もう一度きれいに書いてみよう！
+            </p>
+            <button onclick="closeOshiiModal()" class="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-amber-950 font-black rounded-2xl shadow-md active:scale-95 transition border border-white">
+                もういちど書く！
+            </button>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // ========================================================
+        // EXACT 40 KANJI DATASET (両 〜 役)
+        // ========================================================
+        const KANJI_40_LIST = [
+            { id: 1, char: "両", strokes: 6, onyomi: "リョウ", kunyomi: "-", examples: ["両手（りょうて）をあげる", "車両（しゃりょう）"], radical: "一 (いち)" },
+            { id: 2, char: "負", strokes: 9, onyomi: "フ", kunyomi: "ま・ける", examples: ["試合に負（ま）ける", "勝負（しょうぶ）"], radical: "貝 (かい)" },
+            { id: 3, char: "係", strokes: 9, onyomi: "ケイ", kunyomi: "かか・る", examples: ["係（かかり）の人", "関係（かんけい）"], radical: "亻 (にんべん)" },
+            { id: 4, char: "員", strokes: 10, onyomi: "イン", kunyomi: "-", examples: ["全員（ぜんいん）あつまる", "係員（かかりいん）"], radical: "口 (くち)" },
+            { id: 5, char: "祭", strokes: 11, onyomi: "サイ", kunyomi: "まつ・り", examples: ["夏祭（なつまつ）り", "祭日（さいじつ）"], radical: "示 (しめす)" },
+            { id: 6, char: "業", strokes: 13, onyomi: "ギョウ・ゴウ", kunyomi: "わざ", examples: ["授業（じゅぎょう）をうける", "作業（さぎょう）"], radical: "木 (き)" },
+            { id: 7, char: "板", strokes: 8, onyomi: "ハン・バン", kunyomi: "いた", examples: ["黒板（こくばん）に書く", "看板（かんばん）"], radical: "木 (きへん)" },
+            { id: 8, char: "柱", strokes: 9, onyomi: "チュウ", kunyomi: "はしら", examples: ["電柱（でんちゅう）", "大黒柱（だいこくばしら）"], radical: "木 (きへん)" },
+            { id: 9, char: "油", strokes: 8, onyomi: "ユ", kunyomi: "あぶら", examples: ["サラダ油（あぶら）", "石油（せきゆ）"], radical: "氵 (さんずい)" },
+            { id: 10, char: "港", strokes: 12, onyomi: "コウ", kunyomi: "みなと", examples: ["港（みなと）にふねがとまる", "空港（くうこう）"], radical: "氵 (さんずい)" },
+            { id: 11, char: "薬", strokes: 16, onyomi: "ヤク", kunyomi: "くすり", examples: ["風邪薬（かぜぐすり）", "目薬（めぐすり）"], radical: "艸 (くさかんむり)" },
+            { id: 12, char: "笛", strokes: 11, onyomi: "テキ", kunyomi: "ふえ", examples: ["笛（ふえ）を鳴らす", "口笛（くちぶえ）"], radical: "竹 (たけかんむり)" },
+            { id: 13, char: "注", strokes: 8, onyomi: "チュウ", kunyomi: "そそ・ぐ", examples: ["注意（ちゅうい）する", "注水（ちゅうすい）"], radical: "氵 (さんずい)" },
+            { id: 14, char: "悪", strokes: 11, onyomi: "アク・オ", kunyomi: "わる・い", examples: ["気分が悪（わる）い", "悪人（あくにん）"], radical: "心 (こころ)" },
+            { id: 15, char: "者", strokes: 8, onyomi: "シャ", kunyomi: "もの", examples: ["医者（いしゃ）さん", "学者（がくしゃ）"], radical: "老 (おいかんむり)" },
+            { id: 16, char: "勝", strokes: 12, onyomi: "ショウ", kunyomi: "か・つ", examples: ["試合に勝（か）つ", "勝負（しょうぶ）"], radical: "力 (ちから)" },
+            { id: 17, char: "庫", strokes: 10, onyomi: "コ・ク", kunyomi: "くら", examples: ["車庫（しゃこ）に入れる", "金庫（きんこ）"], radical: "广 (まだれ)" },
+            { id: 18, char: "波", strokes: 8, onyomi: "ハ", kunyomi: "なみ", examples: ["高い波（なみ）がくる", "電波（でんぱ）"], radical: "氵 (さんずい)" },
+            { id: 19, char: "放", strokes: 8, onyomi: "ホウ", kunyomi: "はな・す", examples: ["放送（ほうそう）をきく", "開放（かいほう）"], radical: "攴 (ぼくづくり)" },
+            { id: 20, char: "勉", strokes: 10, onyomi: "ベン", kunyomi: "-", examples: ["勉強（べんきょう）する", "勉学（べんがく）"], radical: "力 (ちから)" },
+            { id: 21, char: "想", strokes: 13, onyomi: "ソウ・ソ", kunyomi: "-", examples: ["感想（かんそう）を書く", "想像（そうぞう）"], radical: "心 (こころ)" },
+            { id: 22, char: "写", strokes: 5, onyomi: "シャ", kunyomi: "うつ・す", examples: ["写真（しゃしん）をとる", "写生（しゃせい）"], radical: "冖 (わかんむり)" },
+            { id: 23, char: "真", strokes: 10, onyomi: "シン", kunyomi: "ま", examples: ["真ん中（まんなか）", "写真（しゃしん）"], radical: "目 (め)" },
+            { id: 24, char: "列", strokes: 6, onyomi: "レツ", kunyomi: "-", examples: ["一列（いちれつ）にならぶ", "列車（れっしゃ）"], radical: "刂 (りっとう)" },
+            { id: 25, char: "血", strokes: 6, onyomi: "ケツ", kunyomi: "ち", examples: ["血（ち）が出る", "血液（けつえき）"], radical: "血 (ち)" },
+            { id: 26, char: "暗", strokes: 13, onyomi: "アン", kunyomi: "くら・い", examples: ["部屋が暗（くら）い", "暗算（あんざん）"], radical: "日 (ひへん)" },
+            { id: 27, char: "橋", strokes: 16, onyomi: "キョウ", kunyomi: "はし", examples: ["大きな橋（はし）をわたる", "歩道橋（ほどうきょう）"], radical: "木 (きへん)" },
+            { id: 28, char: "暑", strokes: 12, onyomi: "ショ", kunyomi: "あつ・い", examples: ["夏は暑（あつ）い", "残暑（ざんしょ）"], radical: "日 (ひへん)" },
+            { id: 29, char: "寒", strokes: 12, onyomi: "カン", kunyomi: "さむ・い", examples: ["冬は寒（さむ）い", "寒気（かんき）"], radical: "宀 (うかんむり)" },
+            { id: 30, char: "軽", strokes: 12, onyomi: "ケイ", kunyomi: "かる・い", examples: ["体が軽（かる）い", "軽食（けいしょく）"], radical: "車 (くるま)" },
+            { id: 31, char: "命", strokes: 8, onyomi: "メイ・ミョウ", kunyomi: "いのち", examples: ["命（いのち）を大切にする", "生命（せいめい）"], radical: "口 (くち)" },
+            { id: 32, char: "第", strokes: 11, onyomi: "ダイ", kunyomi: "-", examples: ["第一章（だいいっしょう）", "次第（しだい）"], radical: "竹 (たけかんむり)" },
+            { id: 33, char: "返", strokes: 7, onyomi: "ヘン", kunyomi: "かえ・す", examples: ["本を返（かえ）す", "返事（へんじ）"], radical: "⻌ (しんにょう)" },
+            { id: 34, char: "主", strokes: 5, onyomi: "シュ", kunyomi: "おも・ぬし", examples: ["主人公（しゅじんこう）", "主役（しゅやく）"], radical: "丶 (てん)" },
+            { id: 35, char: "州", strokes: 6, onyomi: "シュウ", kunyomi: "す", examples: ["九州（きゅうしゅう）地方", "三角州（さんかくす）"], radical: "川 (かわ)" },
+            { id: 36, char: "屋", strokes: 9, onyomi: "オク", kunyomi: "や", examples: ["本屋（ほんや）さん", "屋上（おくじょう）"], radical: "尸 (しかばね)" },
+            { id: 37, char: "根", strokes: 10, onyomi: "コン", kunyomi: "ね", examples: ["木の根（ね）っこ", "屋根（やね）"], radical: "木 (きへん)" },
+            { id: 38, char: "荷", strokes: 10, onyomi: "カ", kunyomi: "に", examples: ["手荷物（てにもつ）", "荷物（にもつ）"], radical: "艸 (くさかんむり)" },
+            { id: 39, char: "守", strokes: 6, onyomi: "シュ・ス", kunyomi: "まも・る", examples: ["約束を守（まも）る", "守備（しゅび）"], radical: "宀 (うかんむり)" },
+            { id: 40, char: "役", strokes: 7, onyomi: "ヤク・エキ", kunyomi: "-", examples: ["役所（やくしょ）", "役割（やくわり）", "主役（しゅやく）"], radical: "彳 (ぎょうにんべん)" }
+        ];
+
+        // App State
+        let userStars = parseInt(localStorage.getItem('kanji_stars_g3_t2_40') || '0');
+        let completedKanji = JSON.parse(localStorage.getItem('kanji_completed_g3_t2_40') || '[]');
+        let currentCanvasKanjiIndex = 0;
+        let isGuideVisible = true;
+        let penColor = '#1e293b';
+
+        // Quiz State
+        let quizList = [];
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            updateUserHeader();
+            renderZukan();
+            initWritingCanvas();
+            updateOverallProgressBar();
+            // Default load canvas mode
+            switchView('canvas');
+        });
+
+        // Switch View Tabs
+        function switchView(viewName) {
+            sound.playClick();
+
+            document.getElementById('view-zukan').classList.add('hidden');
+            document.getElementById('view-canvas').classList.add('hidden');
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-stamp').classList.add('hidden');
+
+            const tabs = ['zukan', 'canvas', 'quiz', 'stamp'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) {
+                    btn.className = "py-2.5 px-2 md:px-4 rounded-xl font-black text-xs md:text-sm transition flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-amber-900 hover:bg-white/60";
+                }
+            });
+
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${viewName}`);
+            if (activeBtn) {
+                activeBtn.className = "py-2.5 px-2 md:px-4 rounded-xl font-black text-xs md:text-sm transition flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 bg-white text-amber-900 shadow-md border-b-4 border-yellow-400";
+            }
+
+            if (viewName === 'canvas') {
+                setTimeout(resizeCanvas, 50);
+                loadCanvasKanji(currentCanvasKanjiIndex);
+            } else if (viewName === 'quiz') {
+                startQuiz();
+            } else if (viewName === 'stamp') {
+                renderStampBook();
+            }
+        }
+
+        // ========================================================
+        // MODE 1: KANJI ZUKAN (図鑑)
+        // ========================================================
+        function renderZukan() {
+            const container = document.getElementById('zukan-grid');
+            const searchVal = document.getElementById('zukan-search').value.trim().toLowerCase();
+            let items = KANJI_40_LIST;
+
+            if (searchVal) {
+                items = items.filter(k => 
+                    k.char.includes(searchVal) || 
+                    k.onyomi.toLowerCase().includes(searchVal) || 
+                    k.kunyomi.toLowerCase().includes(searchVal)
+                );
+            }
+
+            container.innerHTML = '';
+
+            items.forEach((item, idx) => {
+                const isDone = completedKanji.includes(item.char);
+                const card = document.createElement('div');
+                card.className = "bg-white border-2 border-amber-300 hover:border-yellow-400 rounded-3xl p-3 shadow-sm hover:shadow-md transition flex flex-col justify-between items-center cursor-pointer relative group";
+                card.onclick = () => openModal(item);
+
+                card.innerHTML = `
+                    <div class="absolute top-2 left-2 text-[10px] font-black text-white bg-red-500 px-2 py-0.5 rounded-full shadow-sm">
+                        ${item.id}/40
+                    </div>
+                    ${isDone ? `<div class="absolute top-2 right-2 text-red-500 text-base"><i class="fa-solid fa-certificate"></i></div>` : ''}
+
+                    <div class="my-4 text-5xl font-black text-amber-950 group-hover:scale-110 transition-transform font-serif">
+                        ${item.char}
+                    </div>
+
+                    <div class="w-full text-center border-t border-amber-100 pt-2 space-y-0.5 bg-amber-50/50 rounded-b-2xl p-1">
+                        <div class="text-[11px] font-bold text-amber-800 truncate">音: ${item.onyomi}</div>
+                        <div class="text-[11px] font-bold text-amber-900 truncate">訓: ${item.kunyomi}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openModal(item) {
+            sound.playClick();
+            document.getElementById('modal-page').innerText = `${item.id} / 40`;
+            document.getElementById('modal-kanji').innerText = item.char;
+            document.getElementById('modal-strokes').innerText = `${item.strokes}画`;
+            document.getElementById('modal-radical').innerText = item.radical || '-';
+            document.getElementById('modal-onyomi').innerText = item.onyomi;
+            document.getElementById('modal-kunyomi').innerText = item.kunyomi;
+
+            const exList = document.getElementById('modal-examples');
+            exList.innerHTML = item.examples.map(ex => `<li>・${ex}</li>`).join('');
+
+            document.getElementById('modal-speak-btn').onclick = () => speakText(item.char);
+            
+            document.getElementById('modal-practice-btn').onclick = () => {
+                closeModal();
+                const idx = KANJI_40_LIST.findIndex(k => k.char === item.char);
+                if (idx !== -1) currentCanvasKanjiIndex = idx;
+                switchView('canvas');
+            };
+
+            document.getElementById('kanji-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('kanji-modal').classList.add('hidden');
+        }
+
+        // ========================================================
+        // MODE 2: CANVAS PRACTICE LOGIC & OVERFLOW CHECK
+        // ========================================================
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+
+        function initWritingCanvas() {
+            canvas = document.getElementById('writing-canvas');
+            ctx = canvas.getContext('2d');
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
+
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            const container = document.getElementById('canvas-container-box');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            clearCanvas();
+        }
+
+        function loadCanvasKanji(index) {
+            if (index < 0) index = KANJI_40_LIST.length - 1;
+            if (index >= KANJI_40_LIST.length) index = 0;
+            currentCanvasKanjiIndex = index;
+
+            const k = KANJI_40_LIST[index];
+            document.getElementById('canvas-page-tag').innerText = `${k.id} / 40`;
+            document.getElementById('canvas-kanji-title').innerText = k.char;
+            document.getElementById('canvas-onyomi').innerText = k.onyomi;
+            document.getElementById('canvas-kunyomi').innerText = k.kunyomi;
+            document.getElementById('canvas-stroke-count').innerText = `${k.strokes} 画`;
+            document.getElementById('canvas-radical').innerText = `部首: ${k.radical || '-'}`;
+            document.getElementById('canvas-example').innerText = k.examples[0] || '';
+
+            document.getElementById('canvas-trace-template').innerText = k.char;
+
+            clearCanvas();
+        }
+
+        function navigateCanvasKanji(dir) {
+            sound.playClick();
+            loadCanvasKanji(currentCanvasKanjiIndex + dir);
+        }
+
+        function speakCurrentCanvasKanji() {
+            const k = KANJI_40_LIST[currentCanvasKanjiIndex];
+            if (k) speakText(k.char);
+        }
+
+        function setPenColor(color) {
+            sound.playClick();
+            penColor = color;
+        }
+
+        function toggleCanvasGuide() {
+            sound.playClick();
+            isGuideVisible = !isGuideVisible;
+            const btn = document.getElementById('toggle-guide-btn');
+            const template = document.getElementById('canvas-trace-template');
+
+            if (isGuideVisible) {
+                btn.innerText = "ON";
+                btn.className = "bg-emerald-500 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow transition";
+                template.style.opacity = '0.4';
+            } else {
+                btn.innerText = "OFF";
+                btn.className = "bg-slate-400 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow transition";
+                template.style.opacity = '0';
+            }
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = penColor;
+            ctx.lineWidth = 16;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            lastX = x;
+            lastY = y;
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearCanvas() {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // 枠はみ出し判定ロジック（外枠へ約30%以上はみ出すと「惜しい！」）
+        function checkCanvasWriting() {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            let totalDrawn = 0;
+            let overflowDrawn = 0;
+
+            // マス目の外枠（マージン12%）を基準線とする
+            const marginX = canvas.width * 0.12;
+            const marginY = canvas.height * 0.12;
+
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const alpha = data[(y * canvas.width + x) * 4 + 3];
+                    if (alpha > 50) { // 色がついているピクセル
+                        totalDrawn++;
+                        if (x < marginX || x > canvas.width - marginX || y < marginY || y > canvas.height - marginY) {
+                            overflowDrawn++;
+                        }
+                    }
+                }
+            }
+
+            if (totalDrawn < 150) {
+                sound.playOshii();
+                showOshiiModal("もっと大きくしっかりと書いてみよう！");
+                return;
+            }
+
+            const overflowRatio = overflowDrawn / totalDrawn;
+
+            // 30%以上はみ出ていたら「惜しい！」
+            if (overflowRatio >= 0.28) {
+                sound.playOshii();
+                showOshiiModal("枠（わく）からはみ出しているよ！もう一度書いてみよう！");
+            } else {
+                // 合格！たいへんよくできました！
+                const currentKanji = KANJI_40_LIST[currentCanvasKanjiIndex];
+
+                if (!completedKanji.includes(currentKanji.char)) {
+                    completedKanji.push(currentKanji.char);
+                    localStorage.setItem('kanji_completed_g3_t2_40', JSON.stringify(completedKanji));
+                    addStars(10);
+                }
+
+                showStampCelebrationAndAutoAdvance();
+                updateOverallProgressBar();
+                renderZukan();
+            }
+        }
+
+        function showOshiiModal(msg) {
+            document.getElementById('oshii-message-text').innerText = msg;
+            document.getElementById('oshii-overlay').classList.remove('hidden');
+        }
+
+        function closeOshiiModal() {
+            sound.playClick();
+            document.getElementById('oshii-overlay').classList.add('hidden');
+            clearCanvas();
+        }
+
+        function showStampCelebrationAndAutoAdvance() {
+            sound.playCorrect();
+            sound.playFanfare();
+
+            const overlay = document.getElementById('stamp-overlay');
+            overlay.classList.remove('hidden');
+
+            confetti({
+                particleCount: 100,
+                spread: 90,
+                origin: { y: 0.6 }
+            });
+
+            // 1.8秒後に演出を消して「次の漢字へ自動移動」
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                clearCanvas();
+                
+                if (currentCanvasKanjiIndex < KANJI_40_LIST.length - 1) {
+                    navigateCanvasKanji(1);
+                } else {
+                    switchView('stamp');
+                }
+            }, 1800);
+        }
+
+        // ========================================================
+        // MODE 3: INTERACTIVE QUIZ (漢字クイズ)
+        // ========================================================
+        function startQuiz() {
+            const shuffled = [...KANJI_40_LIST].sort(() => 0.5 - Math.random());
+            quizList = shuffled.slice(0, 5);
+
+            currentQuizIndex = 0;
+            quizScore = 0;
+
+            document.getElementById('quiz-box').classList.remove('hidden');
+            document.getElementById('quiz-result-box').classList.add('hidden');
+            document.getElementById('quiz-total-num').innerText = quizList.length;
+
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const item = quizList[currentQuizIndex];
+            document.getElementById('quiz-current-num').innerText = currentQuizIndex + 1;
+            document.getElementById('quiz-score').innerText = quizScore;
+
+            const progressPct = ((currentQuizIndex) / quizList.length) * 100;
+            document.getElementById('quiz-progress-inner').style.width = `${progressPct}%`;
+
+            const type = Math.floor(Math.random() * 2);
+            const questionText = document.getElementById('quiz-question-text');
+            const optionsContainer = document.getElementById('quiz-options-container');
+            const typeBadge = document.getElementById('quiz-type-badge');
+
+            optionsContainer.innerHTML = '';
+
+            let correctAnswer = '';
+            let options = [];
+
+            if (type === 0) {
+                typeBadge.innerText = "読みかたクイズ";
+                questionText.innerText = `「${item.char}」の正しい読みかたはどれ？`;
+                correctAnswer = item.onyomi.split('・')[0] || item.kunyomi.split('・')[0];
+                
+                const distractors = KANJI_40_LIST
+                    .filter(k => k.char !== item.char)
+                    .map(k => k.onyomi.split('・')[0] || k.kunyomi.split('・')[0])
+                    .filter(Boolean);
+                
+                const uniqueDistractors = [...new Set(distractors)].sort(() => 0.5 - Math.random()).slice(0, 3);
+                options = [correctAnswer, ...uniqueDistractors].sort(() => 0.5 - Math.random());
+
+            } else {
+                typeBadge.innerText = "つかいかたクイズ";
+                const ex = item.examples[0] || `${item.char}の漢字`;
+                questionText.innerText = `「${ex}」に使われている漢字はどれ？`;
+                correctAnswer = item.char;
+
+                const distractors = KANJI_40_LIST
+                    .filter(k => k.char !== item.char)
+                    .map(k => k.char);
+                
+                const uniqueDistractors = [...new Set(distractors)].sort(() => 0.5 - Math.random()).slice(0, 3);
+                options = [correctAnswer, ...uniqueDistractors].sort(() => 0.5 - Math.random());
+            }
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-4 px-4 bg-amber-50 hover:bg-yellow-200 border-2 border-amber-200 hover:border-yellow-400 text-amber-950 font-black text-lg md:text-xl rounded-2xl shadow-sm transition active:scale-95 flex items-center justify-center";
+                btn.innerText = opt;
+                btn.onclick = () => handleQuizAnswer(opt === correctAnswer, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function handleQuizAnswer(isCorrect, btn) {
+            const buttons = document.querySelectorAll('#quiz-options-container button');
+            buttons.forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                sound.playCorrect();
+                btn.className = "w-full py-4 px-4 bg-emerald-500 border-2 border-emerald-600 text-white font-black text-lg md:text-xl rounded-2xl shadow-md flex items-center justify-center animate-bounce";
+                quizScore += 10;
+                addStars(5);
+            } else {
+                sound.playIncorrect();
+                btn.className = "w-full py-4 px-4 bg-rose-500 border-2 border-rose-600 text-white font-black text-lg md:text-xl rounded-2xl shadow-md flex items-center justify-center";
+            }
+
+            setTimeout(() => {
+                currentQuizIndex++;
+                if (currentQuizIndex < quizList.length) {
+                    renderQuizQuestion();
+                } else {
+                    finishQuiz();
+                }
+            }, 1200);
+        }
+
+        function finishQuiz() {
+            sound.playFanfare();
+            document.getElementById('quiz-box').classList.add('hidden');
+            document.getElementById('quiz-result-box').classList.remove('hidden');
+            document.getElementById('quiz-earned-stars').innerText = `+${quizScore}`;
+
+            confetti({
+                particleCount: 120,
+                spread: 100,
+                origin: { y: 0.5 }
+            });
+        }
+
+        // ========================================================
+        // MODE 4: STAMP BOOK (スタンプ帳)
+        // ========================================================
+        function renderStampBook() {
+            const grid = document.getElementById('stamp-grid');
+            grid.innerHTML = '';
+
+            KANJI_40_LIST.forEach(k => {
+                const isDone = completedKanji.includes(k.char);
+                const stampSlot = document.createElement('div');
+                stampSlot.className = `w-12 h-12 rounded-2xl border-2 flex items-center justify-center font-bold text-lg font-serif ${
+                    isDone 
+                        ? 'bg-yellow-100 border-yellow-400 text-red-600 shadow-inner' 
+                        : 'bg-slate-50 border-slate-200 text-slate-300'
+                }`;
+                stampSlot.innerText = k.char;
+                grid.appendChild(stampSlot);
+            });
+
+            // Unlock Badges
+            if (userStars >= 50) document.getElementById('badge-1').classList.remove('opacity-50');
+            if (userStars >= 150) document.getElementById('badge-2').classList.remove('opacity-50');
+            if (userStars >= 300) document.getElementById('badge-3').classList.remove('opacity-50');
+        }
+
+        // ========================================================
+        // GAMIFICATION & STATS
+        // ========================================================
+        function addStars(amount) {
+            userStars += amount;
+            localStorage.setItem('kanji_stars_g3_t2_40', userStars);
+            updateUserHeader();
+        }
+
+        function updateUserHeader() {
+            document.getElementById('user-stars').innerText = userStars;
+
+            let levelTitle = "かんじ たまご";
+            if (userStars >= 50) levelTitle = "かんじ 見習い";
+            if (userStars >= 150) levelTitle = "小3かんじ名人";
+            if (userStars >= 300) levelTitle = "かんじ ハカセ";
+
+            document.getElementById('user-level').innerText = levelTitle;
+        }
+
+        function updateOverallProgressBar() {
+            const total = KANJI_40_LIST.length;
+            const completed = completedKanji.length;
+            const pct = Math.round((completed / total) * 100);
+
+            document.getElementById('overall-progress-bar').style.width = `${pct}%`;
+        }
+    </script>
+</body>
+</html>
